@@ -7,6 +7,7 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { AuthModule } from 'src/modules/auth/auth.module';
 import { validateEnv } from './config/env.validation';
 import { TemplateModule } from './modules/templates/template.module';
+import { ContractModule } from './modules/contracts/contract.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { TemplateModule } from './modules/templates/template.module';
     PrismaModule,
     AuthModule,
     TemplateModule,
+    ContractModule,
   ],
   controllers: [],
   providers: [
