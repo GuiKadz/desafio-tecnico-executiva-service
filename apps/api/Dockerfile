@@ -22,6 +22,8 @@ FROM base AS runtime
 ENV NODE_ENV=production
 WORKDIR /repo
 
+RUN apk add --no-cache openssl
+
 COPY --from=build /repo/node_modules ./node_modules
 COPY --from=build /repo/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build /repo/apps/api/dist ./apps/api/dist
@@ -32,4 +34,5 @@ COPY --from=build /repo/apps/api/prisma.config.ts ./apps/api/prisma.config.ts
 
 WORKDIR /repo/apps/api
 EXPOSE 3001
-CMD ["sh", "-c", "pnpm prisma:migrate:deploy && node dist/main.js"]
+
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/src/main.js"]

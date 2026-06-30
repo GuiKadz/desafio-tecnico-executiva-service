@@ -7,5 +7,6 @@ import { TemplateModule } from '../templates/template.module';
   imports: [TemplateModule],
   controllers: [ContractController],
   providers: [ContractService],
+  exports: [ContractService],
 })
 export class ContractModule {}

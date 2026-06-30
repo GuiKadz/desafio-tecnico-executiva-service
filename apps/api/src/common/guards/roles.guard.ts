@@ -9,11 +9,6 @@ import { ROLES_KEY } from '../decorators/roles.decorator';
 import { Role } from '../../../generated/prisma/enums';
 import { CurrentUserPayload } from '../types/auth.types';
 
-/**
- * Verifica se o usuário autenticado possui um dos papéis exigidos pela
- * rota (@Roles). Deve ser usado SEMPRE após o JwtAuthGuard, já que depende
- * de request.user estar populado.
- */
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}

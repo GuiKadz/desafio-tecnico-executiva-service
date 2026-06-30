@@ -7,7 +7,12 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { TemplateService } from '../templates/template.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractFieldsDto } from './dto/update-contract-fields.dto';
-import { ContractStatus, FieldType } from '../../../generated/prisma/enums';
+import { FindContractsQueryDto } from './dto/find-contracts-query.dto';
+import {
+  ContractStatus,
+  FieldType,
+  HistoryAction,
+} from '../../../generated/prisma/enums';
 
 type TemplateFieldShape = {
   name: string;
@@ -15,7 +20,6 @@ type TemplateFieldShape = {
   required: boolean;
 };
 
-// Transições permitidas: sempre pra frente, nunca pula etapa nem volta.
 const ALLOWED_TRANSITIONS: Record<ContractStatus, ContractStatus[]> = {
   DRAFT: [ContractStatus.ACTIVE],
   ACTIVE: [ContractStatus.CLOSED],
@@ -29,13 +33,6 @@ export class ContractService {
     private readonly templateService: TemplateService,
   ) {}
 
-  /**
-   * Valida os valores enviados contra os campos do template: rejeita campo
-   * desconhecido, valida o tipo declarado (TEXT/NUMBER/DATE/BOOLEAN) e,
-   * quando `enforceRequired` é true, garante que todo campo obrigatório foi
-   * preenchido (usado na criação; na edição parcial não se aplica, já que
-   * outros campos já preenchidos permanecem intactos).
-   */
   private validateValues(
     values: { fieldName: string; value: string }[],
     templateFields: TemplateFieldShape[],
@@ -131,7 +128,7 @@ export class ContractService {
       await tx.contractHistory.create({
         data: {
           contractId: contract.id,
-          action: 'CREATED',
+          action: HistoryAction.CREATED,
           changedById: userId,
         },
       });
@@ -140,13 +137,66 @@ export class ContractService {
     });
   }
 
+  async findAll(tenantId: string, query: FindContractsQueryDto) {
+    const { page, limit, status, dateFrom, dateTo, fieldName, fieldValue } =
+      query;
+
+    const where: Record<string, unknown> = { tenantId };
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (dateFrom || dateTo) {
+      where.createdAt = {
+        ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+        ...(dateTo ? { lte: new Date(dateTo) } : {}),
+      };
+    }
+
+    if (fieldName && fieldValue) {
+      where.values = {
+        some: {
+          fieldName,
+          value: { contains: fieldValue, mode: 'insensitive' },
+        },
+      };
+    }
+
+    const [total, data] = await Promise.all([
+      this.prisma.contract.count({ where }),
+      this.prisma.contract.findMany({
+        where,
+        include: { values: true },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   async findOne(id: string, tenantId: string) {
     const contract = await this.prisma.contract.findFirst({
       where: { id, tenantId },
       include: {
         values: true,
         template: { include: { fields: true } },
-        history: { orderBy: { changedAt: 'desc' } },
+        history: {
+          orderBy: { changedAt: 'desc' },
+          include: {
+            changedBy: { select: { id: true, name: true, email: true } },
+          },
+        },
       },
     });
 
@@ -186,7 +236,7 @@ export class ContractService {
       await tx.contractHistory.create({
         data: {
           contractId: id,
-          action: 'STATUS_CHANGED',
+          action: HistoryAction.STATUS_CHANGED,
           oldValue: contract.status,
           newValue: newStatus,
           changedById: userId,
@@ -232,7 +282,7 @@ export class ContractService {
         const existing = existingByName.get(fieldName);
 
         if (existing) {
-          if (existing.value === value) continue; // nada mudou, não polui o histórico
+          if (existing.value === value) continue;
 
           await tx.contractFieldValue.update({
             where: { id: existing.id },
@@ -241,7 +291,7 @@ export class ContractService {
           await tx.contractHistory.create({
             data: {
               contractId: id,
-              action: 'FIELD_UPDATED',
+              action: HistoryAction.FIELD_UPDATED,
               fieldName,
               oldValue: existing.value,
               newValue: value,
@@ -260,7 +310,7 @@ export class ContractService {
           await tx.contractHistory.create({
             data: {
               contractId: id,
-              action: 'FIELD_UPDATED',
+              action: HistoryAction.FIELD_UPDATED,
               fieldName,
               oldValue: null,
               newValue: value,

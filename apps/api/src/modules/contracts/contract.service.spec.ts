@@ -12,6 +12,8 @@ describe('ContractService', () => {
     contract: {
       create: jest.fn(),
       findFirst: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
       update: jest.fn(),
       findUniqueOrThrow: jest.fn(),
     },
@@ -143,6 +145,111 @@ describe('ContractService', () => {
         }),
       });
       expect(result.id).toBe('contract-1');
+    });
+  });
+
+  describe('findAll', () => {
+    it('aplica paginação e isola por tenant', async () => {
+      prismaMock.contract.count.mockResolvedValueOnce(45);
+      prismaMock.contract.findMany.mockResolvedValueOnce([{ id: 'c-1' }]);
+
+      const result = await contractService.findAll('tenant-A', {
+        page: 2,
+        limit: 20,
+      });
+
+      expect(prismaMock.contract.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { tenantId: 'tenant-A' },
+          skip: 20,
+          take: 20,
+        }),
+      );
+      expect(result.meta).toEqual({
+        total: 45,
+        page: 2,
+        limit: 20,
+        totalPages: 3,
+      });
+    });
+
+    it('filtra por status', async () => {
+      prismaMock.contract.count.mockResolvedValueOnce(1);
+      prismaMock.contract.findMany.mockResolvedValueOnce([]);
+
+      await contractService.findAll('tenant-A', {
+        page: 1,
+        limit: 20,
+        status: ContractStatus.ACTIVE,
+      });
+
+      expect(prismaMock.contract.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { tenantId: 'tenant-A', status: ContractStatus.ACTIVE },
+        }),
+      );
+    });
+
+    it('filtra por intervalo de datas', async () => {
+      prismaMock.contract.count.mockResolvedValueOnce(0);
+      prismaMock.contract.findMany.mockResolvedValueOnce([]);
+
+      await contractService.findAll('tenant-A', {
+        page: 1,
+        limit: 20,
+        dateFrom: '2026-01-01',
+        dateTo: '2026-01-31',
+      });
+
+      expect(prismaMock.contract.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            createdAt: {
+              gte: new Date('2026-01-01'),
+              lte: new Date('2026-01-31'),
+            },
+          }),
+        }),
+      );
+    });
+
+    it('busca por valor de campo só quando fieldName e fieldValue vêm juntos', async () => {
+      prismaMock.contract.count.mockResolvedValueOnce(0);
+      prismaMock.contract.findMany.mockResolvedValueOnce([]);
+
+      // só fieldName, sem fieldValue: não deve aplicar o filtro "values"
+      await contractService.findAll('tenant-A', {
+        page: 1,
+        limit: 20,
+        fieldName: 'Nome',
+      });
+
+      expect(prismaMock.contract.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { tenantId: 'tenant-A' } }),
+      );
+
+      prismaMock.contract.count.mockResolvedValueOnce(0);
+      prismaMock.contract.findMany.mockResolvedValueOnce([]);
+
+      await contractService.findAll('tenant-A', {
+        page: 1,
+        limit: 20,
+        fieldName: 'Nome',
+        fieldValue: 'acme',
+      });
+
+      expect(prismaMock.contract.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            values: {
+              some: {
+                fieldName: 'Nome',
+                value: { contains: 'acme', mode: 'insensitive' },
+              },
+            },
+          }),
+        }),
+      );
     });
   });
 

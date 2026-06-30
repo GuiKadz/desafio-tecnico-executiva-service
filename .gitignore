@@ -8,3 +8,4 @@ coverage/
 .DS_Store
 apps/web/.turbo/
 apps/api/.turbo/
+apps/api/generated/

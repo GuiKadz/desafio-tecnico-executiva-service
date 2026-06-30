@@ -3,7 +3,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TokenService, TokenPair } from './token.service';
 import { OnboardingDto } from './dto/onboarding.dto';
@@ -20,11 +20,6 @@ export class AuthService {
     private readonly tokens: TokenService,
   ) {}
 
-  /**
-   * Onboarding: cria um novo tenant junto com seu usuário administrador
-   * inicial em uma única transação. Garante unicidade do slug do tenant e
-   * do e-mail do admin.
-   */
   async onboarding(dto: OnboardingDto): Promise<TokenPair> {
     const [existingTenant, existingUser] = await Promise.all([
       this.prisma.tenant.findUnique({ where: { slug: dto.tenantSlug } }),
@@ -95,12 +90,6 @@ export class AuthService {
     return this.tokens.rotateRefreshToken(rawRefreshToken);
   }
 
-  /**
-   * Cria um novo usuário (Admin ou Viewer) dentro do MESMO tenant do
-   * usuário autenticado. O tenantId nunca vem do corpo da requisição —
-   * sempre do token do usuário logado — para impedir vazamento entre
-   * tenants (multi-tenancy real).
-   */
   async createUser(dto: CreateUserDto, tenantId: string) {
     const existingUser = await this.prisma.user.findUnique({
       where: { email: dto.email },

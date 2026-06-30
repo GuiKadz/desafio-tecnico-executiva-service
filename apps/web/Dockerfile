@@ -18,18 +18,27 @@ COPY apps/web apps/web
 WORKDIR /repo/apps/web
 RUN pnpm build
 
-# ---- runtime: Next standalone server, no node_modules needed ----
-# NOTE: in a pnpm/turborepo monorepo, Next traces from the workspace root
-# (where pnpm-lock.yaml lives), so .next/standalone mirrors that structure:
-# server.js lands at standalone/apps/web/server.js, not at standalone/server.js.
+# ---- runtime: Next standalone server ----
+#
+# Em monorepos pnpm com output:"standalone", o Next traça dependências a partir
+# do workspace root (onde pnpm-lock.yaml vive). Por isso o .next/standalone
+# espelha a estrutura completa do repo:
+#   .next/standalone/
+#     apps/web/server.js   ← entry point correto
+#     apps/web/.next/
+#     node_modules/
+#
+# O COPY abaixo preserva essa árvore. O WORKDIR e CMD apontam para o caminho
+# correto dentro dela.
 FROM base AS runtime
 ENV NODE_ENV=production
 WORKDIR /repo
 
 COPY --from=build /repo/apps/web/.next/standalone ./
-COPY --from=build /repo/apps/web/.next/static ./apps/web/.next/static
-COPY --from=build /repo/apps/web/public ./apps/web/public
+COPY --from=build /repo/apps/web/.next/static     ./apps/web/.next/static
+COPY --from=build /repo/apps/web/public           ./apps/web/public
 
+# server.js está em /repo/apps/web/server.js (não em /repo/server.js)
 WORKDIR /repo/apps/web
 EXPOSE 3000
 CMD ["node", "server.js"]

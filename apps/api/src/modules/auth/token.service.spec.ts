@@ -5,9 +5,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { TokenService, AuthenticatedUser } from './token.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
-// bcrypt depende de um binding nativo; em testes unitários isolamos a
-// lógica de rotation/reuse detection do hashing em si (testado à parte).
-jest.mock('bcrypt', () => ({
+jest.mock('bcryptjs', () => ({
   hash: jest.fn((value: string) => Promise.resolve(`hashed:${value}`)),
   compare: jest.fn((value: string, hash: string) =>
     Promise.resolve(hash === `hashed:${value}`),
@@ -25,7 +23,6 @@ describe('TokenService', () => {
     role: 'ADMIN',
   };
 
-  // Simula a tabela RefreshToken em memória.
   let db: Record<
     string,
     {
@@ -72,6 +69,11 @@ describe('TokenService', () => {
         if (key === 'JWT_REFRESH_SECRET') return 'test-refresh-secret';
         throw new Error(`Env não mockada: ${key}`);
       }),
+      get: jest.fn((key: string, defaultValue?: string) => {
+        if (key === 'JWT_ACCESS_TTL') return defaultValue ?? '15m';
+        if (key === 'JWT_REFRESH_TTL') return defaultValue ?? '7d';
+        return defaultValue;
+      }),
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -113,15 +115,12 @@ describe('TokenService', () => {
   it('detecta reuso de refresh token já revogado e revoga todas as sessões', async () => {
     const first = await tokenService.issueTokenPair(user);
 
-    // Primeira rotação: legítima.
     await tokenService.rotateRefreshToken(first.refreshToken);
 
-    // Segunda tentativa com o MESMO token original (já revogado) = reuso.
     await expect(
       tokenService.rotateRefreshToken(first.refreshToken),
     ).rejects.toThrow(UnauthorizedException);
 
-    // Todas as sessões do usuário devem estar revogadas após o reuso.
     const allRevoked = Object.values(db)
       .filter((r) => r.userId === user.id)
       .every((r) => r.revoked === true);

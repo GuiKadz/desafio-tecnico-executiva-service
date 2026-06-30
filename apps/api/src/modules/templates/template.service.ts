@@ -6,11 +6,6 @@ import { CreateTemplateDto } from './dto/create-template.dto';
 export class TemplateService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Cria uma nova versão do template do tenant. Nunca edita uma versão
-   * existente: a anterior é apenas desativada, preservando os contratos já
-   * gerados a partir dela (edição não retroativa).
-   */
   async createVersion(dto: CreateTemplateDto, tenantId: string) {
     return this.prisma.$transaction(async (tx) => {
       const current = await tx.contractTemplate.findFirst({

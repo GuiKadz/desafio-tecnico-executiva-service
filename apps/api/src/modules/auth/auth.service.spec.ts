@@ -5,15 +5,13 @@ import { TokenService } from './token.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Role } from '../../../generated/prisma/enums';
 
-// bcrypt depende de um binding nativo; mockamos um hashing determinístico
-// simples para validar a lógica de negócio sem o binding compilado.
-jest.mock('bcrypt', () => ({
+jest.mock('bcryptjs', () => ({
   hash: jest.fn((value: string) => Promise.resolve(`hashed:${value}`)),
   compare: jest.fn((value: string, hash: string) =>
     Promise.resolve(hash === `hashed:${value}`),
   ),
 }));
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
 describe('AuthService', () => {
   let authService: AuthService;
@@ -76,9 +74,7 @@ describe('AuthService', () => {
         }),
       );
       expect(result.tenantId).toBe(callerTenantId);
-      // A senha nunca deve vazar na resposta — o tipo de retorno do service já
-      // a omite (destructuring em createUser), então checamos a ausência da
-      // chave em vez de acessar uma propriedade que não existe no tipo.
+
       expect('password' in result).toBe(false);
     });
 
