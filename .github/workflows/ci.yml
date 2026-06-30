@@ -9,6 +9,10 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://test:test@localhost:5432/test_db
+      JWT_ACCESS_SECRET: ci-secret
+      JWT_REFRESH_SECRET: ci-secret
     services:
       postgres:
         image: postgres:16-alpine
@@ -41,18 +45,12 @@ jobs:
 
       - name: Run migrations
         run: pnpm --filter api prisma:migrate:deploy
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/test_db
 
       - name: Lint
         run: pnpm turbo run lint
 
       - name: Test
         run: pnpm turbo run test
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/test_db
-          JWT_ACCESS_SECRET: ci-secret
-          JWT_REFRESH_SECRET: ci-secret
 
       - name: Build
         run: pnpm turbo run build

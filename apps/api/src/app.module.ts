@@ -6,12 +6,14 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { AuthModule } from 'src/modules/auth/auth.module';
 import { validateEnv } from './config/env.validation';
+import { TemplateModule } from './modules/templates/template.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     PrismaModule,
     AuthModule,
+    TemplateModule,
   ],
   controllers: [],
   providers: [

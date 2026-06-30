@@ -86,6 +86,7 @@ model ContractTemplate {
   fields    TemplateField[]
   contracts Contract[]
 
+  @@unique([tenantId, version])
   @@index([tenantId, isActive])
   @@map("contract_templates")
 }
