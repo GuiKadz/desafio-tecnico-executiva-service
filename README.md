@@ -47,7 +47,7 @@ A solução foi projetada para subir com **um único comando**, configurando aut
 
 ```bash
 # 1. Clone o repositório e acesse a pasta
-git clone <url-do-repositorio>
+git clone https://github.com/GuiKadz/desafio-tecnico-executiva-service
 cd desafio-tecnico-executiva-service
 
 # 2. Configure as variáveis de ambiente (padrão otimizado incluso)
@@ -124,10 +124,8 @@ pnpm --filter api test:e2e
 
 ## 📈 Decisões de Engenharia
 
-- **Next.js vs Vite**: Optamos pelo Next.js nativo para aproveitar o **App Router** e **Server-side Rendering**, garantindo uma performance superior e SEO-friendly, em vez de uma SPA simples com Vite.
-- **Rastreabilidade**: Implementamos um `RequestIdMiddleware`. Cada log gerado possui um ID único por requisição, permitindo rastrear um erro desde a interface até o banco de dados.
+- **Next.js vs Vite**: Optei pelo Next.js nativo para aproveitar o **App Router** e **Server-side Rendering**, garantindo uma performance superior e SEO-friendly, em vez de uma SPA simples com Vite.
+- **Rastreabilidade**: Implementei um `RequestIdMiddleware`. Cada log gerado possui um ID único por requisição, permitindo rastrear um erro desde a interface até o banco de dados.
 - **Neo-Brutalismo**: A escolha estética visa reduzir o ruído visual, focando no que importa para o usuário corporativo: **dados e ações**.
 
 ---
-
-Desenvolvido com foco em excelência técnica por **[Seu Nome/Manus AI]**.
