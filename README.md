@@ -6,13 +6,9 @@
 [![PostgreSQL](https://img.shields.io/badge/database-PostgreSQL-4169E1?style=flat-square&logo=postgresql)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/infra-Docker-2496ED?style=flat-square&logo=docker)](https://www.docker.com/)
 
-> **Solução robusta para gestão de contratos multi-tenant**, desenvolvida com foco em segurança, escalabilidade e experiência do usuário. Este projeto demonstra a implementação de um ecossistema completo SaaS, desde o isolamento rigoroso de dados até a rastreabilidade total de alterações.
-
 ---
 
 ## 🚀 Visão Geral da Solução
-
-A **Executiva Service** é uma plataforma desenhada para empresas que precisam gerenciar contratos de forma dinâmica. O sistema permite que cada cliente (tenant) configure seu próprio modelo de contrato, gerencie instâncias preenchidas e mantenha uma auditoria completa de cada alteração realizada.
 
 ### Diferenciais Técnicos
 - **Isolamento Nativo**: Arquitetura multi-tenant que garante que uma empresa nunca acesse dados de outra.
@@ -70,7 +66,7 @@ docker compose up --build
 Diferente de abordagens frágeis, o `tenantId` **nunca** é aceito via parâmetros de requisição (body/query). Ele é extraído de forma segura do JWT do usuário no servidor. Isso impede ataques de IDOR (Insecure Direct Object Reference).
 
 ### 2. Ciclo de Vida de Tokens
-Implementamos um fluxo de autenticação de alta segurança:
+Implementei um fluxo de autenticação de alta segurança:
 - **Access Token**: Curta duração (15 min), armazenado em memória/state.
 - **Refresh Token**: Longa duração, armazenado em **Cookie httpOnly + SameSite=Lax**. Proteção total contra ataques XSS.
 - **Rotação & Reuso**: Se um atacante tentar reutilizar um Refresh Token antigo, o sistema detecta a anomalia e **revoga imediatamente todas as sessões** do usuário.
