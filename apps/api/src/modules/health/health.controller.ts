@@ -8,11 +8,6 @@ import { Public } from '../../common/decorators/public.decorator';
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Usado pelo healthcheck do Docker Compose. Diferente de checar /docs
-   * (que só prova que o processo Nest subiu), aqui confirmamos que a
-   * aplicação realmente consegue falar com o Postgres.
-   */
   @Public()
   @Get()
   @ApiOperation({ summary: 'Verifica se a api e o banco estão saudáveis' })

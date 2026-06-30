@@ -20,6 +20,12 @@ function hash(plain: string): Promise<string> {
 }
 
 async function main() {
+  const existingTenant = await prisma.tenant.findFirst();
+  if (existingTenant) {
+    console.log('🌱  Banco já populado — seed ignorado.');
+    return;
+  }
+
   console.log('🌱  Iniciando seed…');
 
   await prisma.contractHistory.deleteMany();

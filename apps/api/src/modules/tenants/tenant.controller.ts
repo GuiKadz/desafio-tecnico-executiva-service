@@ -16,4 +16,13 @@ export class TenantController {
   getMe(@CurrentUser('tenantId') tenantId: string) {
     return this.tenantService.findById(tenantId);
   }
+
+  @Get('me/stats')
+  @ApiOperation({
+    summary:
+      'Distribuição de contratos por status e os mais recentes do tenant',
+  })
+  getStats(@CurrentUser('tenantId') tenantId: string) {
+    return this.tenantService.stats(tenantId);
+  }
 }

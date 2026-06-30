@@ -217,7 +217,6 @@ describe('ContractService', () => {
       prismaMock.contract.count.mockResolvedValueOnce(0);
       prismaMock.contract.findMany.mockResolvedValueOnce([]);
 
-      // só fieldName, sem fieldValue: não deve aplicar o filtro "values"
       await contractService.findAll('tenant-A', {
         page: 1,
         limit: 20,

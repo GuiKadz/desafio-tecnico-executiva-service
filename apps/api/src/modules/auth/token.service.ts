@@ -132,4 +132,33 @@ export class TokenService {
 
     return this.issueTokenPair(user);
   }
+
+  getRefreshCookieMaxAgeMs(): number {
+    const ttl = this.config.get<string>('JWT_REFRESH_TTL', '7d');
+    const match = /^(\d+)([smhd])$/.exec(ttl);
+    if (!match) return 7 * 24 * 60 * 60 * 1000;
+
+    const amount = Number(match[1]);
+    const unitMs: Record<string, number> = {
+      s: 1000,
+      m: 60_000,
+      h: 3_600_000,
+      d: 86_400_000,
+    };
+    return amount * unitMs[match[2]];
+  }
+
+  async revokeRefreshToken(rawToken: string): Promise<void> {
+    try {
+      const payload = this.jwt.verify<RefreshTokenJwtPayload>(rawToken, {
+        secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+      });
+      await this.prisma.refreshToken.updateMany({
+        where: { id: payload.jti, revoked: false },
+        data: { revoked: true },
+      });
+    } catch {
+      throw new UnauthorizedException('Refresh token inválido');
+    }
+  }
 }

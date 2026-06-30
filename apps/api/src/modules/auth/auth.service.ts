@@ -1,6 +1,8 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
@@ -9,6 +11,7 @@ import { TokenService, TokenPair } from './token.service';
 import { OnboardingDto } from './dto/onboarding.dto';
 import { LoginDto } from './dto/login.dto';
 import { CreateUserDto } from './dto/create-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { Role } from '../../../generated/prisma/enums';
 
 const BCRYPT_SALT_ROUNDS = 10;
@@ -114,5 +117,74 @@ export class AuthService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _password, ...safeUser } = user;
     return safeUser;
+  }
+
+  async listUsers(tenantId: string) {
+    return this.prisma.user.findMany({
+      where: { tenantId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async removeUser(
+    targetUserId: string,
+    tenantId: string,
+    requesterId: string,
+  ) {
+    if (targetUserId === requesterId) {
+      throw new ForbiddenException('Você não pode remover a si mesmo');
+    }
+
+    const target = await this.prisma.user.findFirst({
+      where: { id: targetUserId, tenantId },
+    });
+
+    if (!target) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    if (target.role === Role.ADMIN) {
+      const adminCount = await this.prisma.user.count({
+        where: { tenantId, role: Role.ADMIN },
+      });
+      if (adminCount <= 1) {
+        throw new ForbiddenException(
+          'Não é possível remover o último administrador do tenant',
+        );
+      }
+    }
+
+    await this.prisma.user.delete({ where: { id: targetUserId } });
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    const passwordMatches = await bcrypt.compare(
+      dto.currentPassword,
+      user.password,
+    );
+    if (!passwordMatches) {
+      throw new UnauthorizedException('Senha atual incorreta');
+    }
+
+    const newPasswordHash = await bcrypt.hash(
+      dto.newPassword,
+      BCRYPT_SALT_ROUNDS,
+    );
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: newPasswordHash },
+    });
   }
 }

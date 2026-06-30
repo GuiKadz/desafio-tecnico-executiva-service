@@ -4,14 +4,17 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const config = app.get(ConfigService);
 
+  app.use(cookieParser());
+
   const corsOrigin = config.get<string>('CORS_ORIGIN') ?? '*';
-  app.enableCors({ origin: corsOrigin });
+  app.enableCors({ origin: corsOrigin, credentials: true });
 
   app.useGlobalFilters(new PrismaExceptionFilter());
 
