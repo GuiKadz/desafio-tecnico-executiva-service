@@ -1,0 +1,28 @@
+# dependencies
+**/node_modules
+
+# build output
+**/dist
+**/.next
+**/generated
+
+# env files (passed via compose env/build-args instead)
+.env
+.env.*
+!.env.example
+
+# git / editor / os
+.git
+.gitignore
+.DS_Store
+.vscode
+.idea
+
+# tests / coverage
+**/coverage
+**/*.spec.ts
+**/test
+
+# misc
+**/.turbo
+**/*.log
