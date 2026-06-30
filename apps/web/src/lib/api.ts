@@ -37,20 +37,46 @@ export class ApiError extends Error {
   }
 }
 
+type Listener = () => void;
+const listeners = new Set<Listener>();
+
+function notify() {
+  listeners.forEach((listener) => listener());
+}
+
+export function subscribeTokens(listener: Listener) {
+  listeners.add(listener);
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', listener);
+  }
+  return () => {
+    listeners.delete(listener);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('storage', listener);
+    }
+  };
+}
+
+export function getAccessToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return window.localStorage.getItem(STORAGE_KEY);
+}
+
 export function saveTokens(tokens: TokenPair) {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem(STORAGE_KEY, tokens.accessToken);
+  notify();
 }
 
 export function getTokens(): TokenPair | null {
-  if (typeof window === 'undefined') return null;
-  const accessToken = window.localStorage.getItem(STORAGE_KEY);
+  const accessToken = getAccessToken();
   return accessToken ? { accessToken } : null;
 }
 
 export function clearTokens() {
   if (typeof window === 'undefined') return;
   window.localStorage.removeItem(STORAGE_KEY);
+  notify();
 }
 
 export function decodeJwt<T = Record<string, unknown>>(token: string): T | null {
